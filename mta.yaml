@@ -1,0 +1,63 @@
+_schema-version: 3.3.0
+ID: PeggingExtraction
+version: 1.0.0
+description: "A simple CAP project."
+parameters:
+  enable-parallel-deployments: true
+build-parameters:
+  before-all:
+    - builder: custom
+      commands:
+        - npm ci
+        - npx cds build --production
+modules:
+  - name: PeggingExtraction-srv
+    type: nodejs
+    path: gen/srv
+    parameters:
+      instances: 1
+      buildpack: nodejs_buildpack
+    build-parameters:
+      builder: npm-ci
+    provides:
+      - name: srv-api # required by consumers of CAP services (e.g. approuter)
+        properties:
+          srv-url: ${default-url}
+    requires:
+      - name: PeggingExtraction-auth
+      - name: PeggingExtraction-destination
+      - name: PeggingExtraction-connectivity
+      - name: CommScope-db
+
+  - name: PeggingExtraction-db-deployer
+    type: hdb
+    path: gen/db
+    parameters:
+      buildpack: nodejs_buildpack
+    requires:
+      - name: CommScope-db
+
+resources:
+  - name: PeggingExtraction-auth
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: xsuaa
+      service-plan: application
+      path: ./xs-security.json
+      config:
+        xsappname: PeggingExtraction
+        tenant-mode: dedicated
+  - name: PeggingExtraction-destination
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: destination
+      service-plan: lite
+  - name: PeggingExtraction-connectivity
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: connectivity
+      service-plan: lite
+  - name: CommScope-db
+    type: org.cloudfoundry.existing-service
+    parameters:
+      service-name: CommScope-db

@@ -1,0 +1,191 @@
+PROCEDURE "PROC_IBP_XML"
+(
+    IN I_XML CLOB
+)
+LANGUAGE SQLSCRIPT
+SQL SECURITY INVOKER
+AS 
+BEGIN
+    DECLARE lv_xml CLOB := :I_XML;
+    DECLARE lv_block CLOB;
+
+    DECLARE start_pos INT;
+    DECLARE end_pos INT;
+
+    -- Variables
+    DECLARE v_DetailedPeggingUUID NVARCHAR(50);
+    DECLARE v_IBPTrasaclSnpshtUUID NVARCHAR(50);
+    DECLARE v_SimulationVersionID INT;
+    DECLARE v_SupplyElementID BIGINT;
+    DECLARE v_SupplyDocInt BIGINT;
+    DECLARE v_SupplyDocItem INT;
+    DECLARE v_SupplyProductID NVARCHAR(50);
+    DECLARE v_SupplyLocationID NVARCHAR(50);
+    DECLARE v_SupplyDocType NVARCHAR(20);
+    DECLARE v_SupplyQuantityUnit NVARCHAR(10);
+    DECLARE v_TotalSupplyQuantity DECIMAL(18,3);
+    DECLARE v_PeggedSupplyQuantity DECIMAL(18,3);
+    DECLARE v_PlanningAreaID NVARCHAR(50);
+    DECLARE v_VersionID NVARCHAR(20);
+
+    -- Loop through <items>
+    WHILE LOCATE(:lv_xml, '<value>') > 0 DO
+        start_pos := LOCATE(:lv_xml, '<value>');
+        end_pos := LOCATE(:lv_xml, '</value>') + LENGTH('</root>');
+        lv_block := SUBSTRING(:lv_xml, start_pos, end_pos - start_pos);
+
+        v_DetailedPeggingUUID := SUBSTRING(:lv_block,
+            LOCATE(:lv_block, '<DetailedPeggingUUID>') + 21,
+            LOCATE(:lv_block, '</DetailedPeggingUUID>') -
+            (LOCATE(:lv_block, '<DetailedPeggingUUID') + 21)
+        );
+
+        v_IBPTrasaclSnpshtUUID := SUBSTRING(
+            :lv_block,
+            LOCATE(:lv_block, '<IBPTransaclSnpshtUUID>') + 23,
+            LOCATE(:lv_block, '</IBPTransaclSnpshtUUID>') -
+            (LOCATE(:lv_block, '<IBPTransaclSnpshtUUID>') + 23)
+        );
+        
+        v_SimulationVersionID := TO_INT(
+            SUBSTRING(
+                :lv_block,
+                LOCATE(:lv_block, '<SimulationVersionID>') + 21,
+                LOCATE(:lv_block, '</SimulationVersionID>') -
+                (LOCATE(:lv_block, '<SimulationVersionID>') + 21)
+            )
+        );
+
+        
+        v_SupplyElementID := TO_BIGINT(
+            SUBSTRING(
+                :lv_block,
+                LOCATE(:lv_block, '<SupplyElementID>') + 17,
+                LOCATE(:lv_block, '</SupplyElementID>') -
+                (LOCATE(:lv_block, '<SupplyElementID>') + 17)
+            )
+        );
+
+        
+        v_SupplyDocInt := TO_BIGINT(
+            SUBSTRING(
+                :lv_block,
+                LOCATE(:lv_block, '<SupplyDocInt>') + 14,
+                LOCATE(:lv_block, '</SupplyDocInt>') -
+                (LOCATE(:lv_block, '<SupplyDocInt>') + 14)
+            )
+        );
+
+        
+        v_SupplyDocItem := TO_INT(
+            SUBSTRING(
+                :lv_block,
+                LOCATE(:lv_block, '<SupplyDocItem>') + 15,
+                LOCATE(:lv_block, '</SupplyDocItem>') -
+                (LOCATE(:lv_block, '<SupplyDocItem>') + 15)
+            )
+        );
+
+        
+        v_SupplyLocationID := SUBSTRING(
+            :lv_block,
+            LOCATE(:lv_block, '<SupplyLocationID>') + 18,
+            LOCATE(:lv_block, '</SupplyLocationID>') -
+            (LOCATE(:lv_block, '<SupplyLocationID>') + 18)
+        );
+
+        
+        v_SupplyDocType := SUBSTRING(
+            :lv_block,
+            LOCATE(:lv_block, '<SupplyDocType>') + 15,
+            LOCATE(:lv_block, '</SupplyDocType>') -
+            (LOCATE(:lv_block, '<SupplyDocType>') + 15)
+        );
+
+        
+        v_SupplyQuantityUnit := SUBSTRING(
+            :lv_block,
+            LOCATE(:lv_block, '<SupplyQuantityUnit>') + 20,
+            LOCATE(:lv_block, '</SupplyQuantityUnit>') -
+            (LOCATE(:lv_block, '<SupplyQuantityUnit>') + 20)
+        );
+
+        
+        v_TotalSupplyQuantity := TO_DECIMAL(
+            SUBSTRING(
+                :lv_block,
+                LOCATE(:lv_block, '<TotalSupplyQuantity>') + 21,
+                LOCATE(:lv_block, '</TotalSupplyQuantity>') -
+                (LOCATE(:lv_block, '<TotalSupplyQuantity>') + 21)
+            ),
+            18, 3
+        );
+
+        
+        v_PeggedSupplyQuantity := TO_DECIMAL(
+            SUBSTRING(
+                :lv_block,
+                LOCATE(:lv_block, '<PeggedSupplyQuantity>') + 22,
+                LOCATE(:lv_block, '</PeggedSupplyQuantity>') -
+                (LOCATE(:lv_block, '<PeggedSupplyQuantity>') + 22)
+            ),
+            18, 3
+        );
+
+        
+        v_PlanningAreaID := SUBSTRING(
+            :lv_block,
+            LOCATE(:lv_block, '<PlanningAreaID>') + 16,
+            LOCATE(:lv_block, '</PlanningAreaID>') -
+            (LOCATE(:lv_block, '<PlanningAreaID>') + 16)
+        );
+
+        
+        v_VersionID := SUBSTRING(
+            :lv_block,
+            LOCATE(:lv_block, '<VersionID>') + 11,
+            LOCATE(:lv_block, '</VersionID>') -
+            (LOCATE(:lv_block, '<VersionID>') + 11)
+        );
+
+        
+        INSERT INTO IBP_PEGGINGDATA (
+            CreatedAt,
+            CreatedBy,
+            DetailedPeggingUUID,
+            IBPTransaclSnpshtUUID,
+            SimulationVersionID,
+            SupplyElementID,
+            SupplyDocInt,
+            SupplyDocItem,
+            SupplyLocationID,
+            SupplyDocType,
+            SupplyQuantityUnit,
+            TotalSupplyQuantity,
+            PeggedSupplyQuantity,
+            PlanningAreaID,
+            VersionID
+        )
+        VALUES (
+            NOW(),
+            'CPI_LOAD',
+            :v_DetailedPeggingUUID,
+            :v_IBPTrasaclSnpshtUUID,
+            :v_SimulationVersionID,
+            :v_SupplyElementID,
+            :v_SupplyDocInt,
+            :v_SupplyDocItem,
+            :v_SupplyLocationID,
+            :v_SupplyDocType,
+            :v_SupplyQuantityUnit,
+            :v_TotalSupplyQuantity,
+            :v_PeggedSupplyQuantity,
+            :v_PlanningAreaID,
+            :v_VersionID
+        );
+
+    
+        lv_xml := SUBSTRING(:lv_xml, end_pos, LENGTH(:lv_xml) - end_pos + 1);
+    
+    END WHILE; 
+END
